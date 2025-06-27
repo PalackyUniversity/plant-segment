@@ -60,6 +60,9 @@ for i in tqdm(glob(os.path.join(DIR_DATA, f"*{EXT_DATA}"))):
     # Find top left, top right, bottom left and bottom right
     x_min, x_max, y_min, y_max = image.shape[1], 0, image.shape[0], 0
     for cnt in image_plate_contours:
+        if cv2.contourArea(cnt) < 1000:
+            continue
+
         x, y, w, h = cv2.boundingRect(cnt)
 
         if x < x_min:
