@@ -6,6 +6,13 @@ import numpy as np
 import cv2
 import os
 
+DIR_DATA = "data"
+DIR_DEBUG = "debug"
+DIR_MASKS = "masks"
+
+EXT_DATA = ".JPG"
+EXT_MASK = ".png"
+
 HIGHLIGHT_COLOR = (50, 50, 130)
 
 
@@ -14,13 +21,33 @@ def sort_by_row_and_column(mask_cnt) -> int:
     return cx + 4 * cy
 
 
-image_mask = cv2.imread("mask.png", cv2.IMREAD_GRAYSCALE)
+os.makedirs(DIR_DEBUG, exist_ok=True)
+
+png_files = [f for f in os.listdir(DIR_MASKS) if f.lower().endswith(EXT_MASK)]
+filenames = [os.path.splitext(f)[0] for f in png_files]
+mask_file = None
+
+while True:
+    print("Choose one of the following files by number:")
+    for idx, name in enumerate(filenames):
+        print(f"{idx}: {name}")
+
+    if (choice := input("\nType the number of your choice: ").strip()).isdigit():
+        index = int(choice)
+        if 0 <= index < len(filenames):
+            mask_file = filenames[index]
+            print(f"You selected: {mask_file}{EXT_MASK}")
+            break
+
+    print("You wrote an invalid input, please try again.\n")
+
+image_mask = cv2.imread(os.path.join(DIR_MASKS, mask_file + EXT_MASK), cv2.IMREAD_GRAYSCALE)
 image_mask_contours, _ = cv2.findContours(image_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 image_mask_contours = sorted(image_mask_contours, key=sort_by_row_and_column)
 
 df_f, df_x, df_y = [], [], []
 
-for i in tqdm(glob("data/*.JPG")):
+for i in tqdm(glob(os.path.join(DIR_DATA, f"*{EXT_DATA}"))):
     image = cv2.imread(i)
     image = cv2.medianBlur(image, 15)  # Blur out bubbles
 
@@ -73,7 +100,6 @@ for i in tqdm(glob("data/*.JPG")):
         df_x.append(n_human)
         df_y.append(counted)
 
-    cv2.imwrite(f"{os.path.join('debug', i.split('/')[-1])}_debug.jpg", cropped_bgr)
-    cv2.waitKey(0)
+    cv2.imwrite(f"{os.path.join(DIR_DEBUG, i.split('/')[-1])}_debug.jpg", cropped_bgr)
 
 pd.DataFrame({"file": df_f, "index": df_x, "pixel_count": df_y}).to_csv("result.csv", index=False)
